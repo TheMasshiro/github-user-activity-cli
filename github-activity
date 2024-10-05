@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+
+import http.client
+import json
+import sys
+
+app_name = "github-activity"
+
+
+def user_activity(username: str):
+    try:
+        host = "api.github.com"
+        conn = http.client.HTTPSConnection(host)
+
+        conn.request(
+            "GET",
+            f"/users/{username}/events",
+            headers={"Host": host, "User-Agent": f"{username}"},
+        )
+
+        response = conn.getresponse()
+
+        data = response.read()
+        parsed_data = json.loads(data.decode("utf-8"))
+
+        return parsed_data
+
+    except http.client.HTTPException as e:
+        print(e)
+        print("Can't connect to Github, please try again later")
+    return None
+
+
+def event_message(event: str, commit_count: int, repo_name: str) -> str:
+    if event == "PushEvent":
+        if commit_count == 1:
+            return f"- Pushed {commit_count} commit to {repo_name}"
+        return f"- Pushed {commit_count} commits to {repo_name}"
+    elif event == "PullRequestEvent":
+        return f"- Opened a pull request in {repo_name}"
+    elif event == "WatchEvent":
+        return f"- Starred {repo_name}"
+    elif event == "IssuesEvent":
+        return f"- Opened a new issue in {repo_name}"
+    return ""
+
+
+def handle_response(responses: list):
+    print("Activities:")
+    repos = {}
+
+    for response in responses:
+        event_type = response.get("type")
+        repo_name = response.get("repo", {}).get("name")
+
+        if not repo_name:
+            continue
+
+        if repo_name not in repos:
+            repos[repo_name] = {
+                "PushEvent": 0,
+                "PullRequestEvent": 0,
+                "IssuesEvent": 0,
+                "WatchEvent": 0,
+            }
+
+        if event_type in repos[repo_name]:
+            repos[repo_name][event_type] += 1
+
+    for repo_name, events in repos.items():
+        for event_type, count in events.items():
+            if count > 0:
+                event_msg = event_message(event_type, count, repo_name)
+                if event_msg:
+                    print(event_msg)
+                print("-" * len(event_msg))
+
+
+if len(sys.argv) == 2:
+    get_response = user_activity(sys.argv[1])
+    if isinstance(get_response, dict):
+        print("Username not found")
+        sys.exit(1)
+    elif not get_response:
+        print(f"{sys.argv[1]} has no activity yet for this period")
+        sys.exit(1)
+
+    handle_response(get_response)
+else:
+    print(f"Usage: python {app_name}.py <username>")
+    sys.exit(1)
