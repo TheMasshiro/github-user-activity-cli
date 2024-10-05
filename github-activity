@@ -8,8 +8,6 @@ import sys
 from datetime import datetime
 from typing import List
 
-app_name = "github-activity"
-
 
 def check_internet_connection(host="8.8.8.8", port=53, timeout=8):
     try:
@@ -56,6 +54,20 @@ def user_activity(username: str):
     return None
 
 
+def event_message(event: str, commit_count: int, repo_name: str) -> str:
+    if event == "PushEvent":
+        if commit_count == 1:
+            return f"- Pushed {commit_count} commit to {repo_name}"
+        return f"- Pushed {commit_count} commits to {repo_name}"
+    elif event == "PullRequestEvent":
+        return f"- Opened a pull request in {repo_name}"
+    elif event == "WatchEvent":
+        return f"- Starred {repo_name}"
+    elif event == "IssuesEvent":
+        return f"- Opened a new issue in {repo_name}"
+    return ""
+
+
 def handle_event(event_type: str) -> str | None:
     event_type = event_type.lower()
 
@@ -73,20 +85,6 @@ def handle_event(event_type: str) -> str | None:
         return "NoEvent"
 
     return None
-
-
-def event_message(event: str, commit_count: int, repo_name: str) -> str:
-    if event == "PushEvent":
-        if commit_count == 1:
-            return f"- Pushed {commit_count} commit to {repo_name}"
-        return f"- Pushed {commit_count} commits to {repo_name}"
-    elif event == "PullRequestEvent":
-        return f"- Opened a pull request in {repo_name}"
-    elif event == "WatchEvent":
-        return f"- Starred {repo_name}"
-    elif event == "IssuesEvent":
-        return f"- Opened a new issue in {repo_name}"
-    return ""
 
 
 def format_date(date_string):
