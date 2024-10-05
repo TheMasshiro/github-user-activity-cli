@@ -48,7 +48,7 @@ The script will display the recent activities of the specified user.
 
 ## Project Structure
 
-The project consists of a single Python script (`github-activity-cli.py`) with the following main components:
+The project consists of a single Python script (`github-activity`) with the following main components:
 
 - `user_activity(username)`: Fetches user activity from the GitHub API
 - `event_message(event, commit_count, repo_name)`: Formats event messages
