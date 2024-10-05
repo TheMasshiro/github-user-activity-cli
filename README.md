@@ -42,9 +42,13 @@ The script will display the recent activities of the specified user.
 
 - Python 3
 - Standard Library modules:
+  - `argparse` for parsing command-line arguments
   - `http.client` for making HTTP requests
   - `json` for parsing JSON responses
-  - `sys` for command-line arguments handling
+  - `socket` for network communication and checking internet connection
+  - `sys` for interacting with the Python interpreter and handling command-line arguments
+  - `datetime` for working with dates and times (e.g., timestamps)
+  - `typing.List` for type hinting, specifically when working with lists
 
 ## Contributing
 
