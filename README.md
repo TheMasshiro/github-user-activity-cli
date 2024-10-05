@@ -46,14 +46,6 @@ The script will display the recent activities of the specified user.
   - `json` for parsing JSON responses
   - `sys` for command-line arguments handling
 
-## Project Structure
-
-The project consists of a single Python script (`github-activity`) with the following main components:
-
-- `user_activity(username)`: Fetches user activity from the GitHub API
-- `event_message(event, commit_count, repo_name)`: Formats event messages
-- `handle_response(responses)`: Processes and displays the activity data
-
 ## Contributing
 
 This is a learning project, but contributions and suggestions are welcome. Please feel free to fork the repository and submit pull requests.
