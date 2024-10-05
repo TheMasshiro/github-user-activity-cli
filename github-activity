@@ -1,13 +1,31 @@
 #!/usr/bin/env python3
 
+import argparse
 import http.client
 import json
+import socket
 import sys
+from datetime import datetime
+from typing import List
 
 app_name = "github-activity"
 
 
+def check_internet_connection(host="8.8.8.8", port=53, timeout=8):
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        return True
+    except (socket.timeout, socket.error):
+        return False
+
+
 def user_activity(username: str):
+    if not check_internet_connection():
+        print(
+            "Error: Unable to connect to GitHub. Please check your network connection"
+        )
+        sys.exit(1)
     try:
         host = "api.github.com"
         conn = http.client.HTTPSConnection(host)
@@ -25,9 +43,35 @@ def user_activity(username: str):
 
         return parsed_data
 
+    except socket.gaierror as e:
+        print(f"Error: Could not resolve the hostname. Details: {e}")
+        sys.exit(1)
+
     except http.client.HTTPException as e:
-        print(e)
-        print("Can't connect to Github, please try again later")
+        print(
+            f"Error: Unable to connect to GitHub. Please check your network connection. Details: {e}"
+        )
+        sys.exit(1)
+
+    return None
+
+
+def handle_event(event_type: str) -> str | None:
+    event_type = event_type.lower()
+
+    event_list = ["push", "pull", "watch", "issues"]
+
+    if event_type == event_list[0]:
+        return "PushEvent"
+    elif event_type == event_list[1]:
+        return "PullRequestEvent"
+    elif event_type == event_list[2]:
+        return "WatchEvent"
+    elif event_type == event_list[3]:
+        return "IssuesEvent"
+    elif event_type not in event_list and event_type is not None:
+        return "NoEvent"
+
     return None
 
 
@@ -45,13 +89,23 @@ def event_message(event: str, commit_count: int, repo_name: str) -> str:
     return ""
 
 
-def handle_response(responses: list):
-    print("Activities:")
+def format_date(date_string):
+    dt = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%SZ")
+    return dt.strftime("%B %d, %Y")
+
+
+def handle_response(
+    parser,
+    responses: list,
+    user_event=None,
+):
     repos = {}
+    repo_dates = {}
 
     for response in responses:
         event_type = response.get("type")
         repo_name = response.get("repo", {}).get("name")
+        event_date = response.get("created_at")
 
         if not repo_name:
             continue
@@ -63,29 +117,83 @@ def handle_response(responses: list):
                 "IssuesEvent": 0,
                 "WatchEvent": 0,
             }
+            repo_dates[repo_name] = event_date
 
         if event_type in repos[repo_name]:
             repos[repo_name][event_type] += 1
 
+        if event_date > repo_dates[repo_name]:
+            repo_dates[repo_name] = event_date
+
+    filtered_event = handle_event(user_event) if user_event else None
+
     for repo_name, events in repos.items():
+        latest_date = format_date(repo_dates[repo_name])
         for event_type, count in events.items():
-            if count > 0:
+            if event_type != "EventDate":
                 event_msg = event_message(event_type, count, repo_name)
-                if event_msg:
-                    print(event_msg)
-                print("-" * len(event_msg))
+
+                if (event_type == filtered_event and count > 0) or (
+                    filtered_event is None and count > 0
+                ):
+                    if event_msg:
+                        print(f"{event_msg}")
+                        print(f"  Latest activity: {latest_date}")
+                        print()
+
+        if filtered_event == "NoEvent":
+            print("Error: invalid event type")
+            if parser:
+                parser.print_help()
+            sys.exit(0)
 
 
-if len(sys.argv) == 2:
-    get_response = user_activity(sys.argv[1])
+def main(argv: List[str]):
+    parser = argparse.ArgumentParser(
+        prog="github-activity",
+        description=(
+            "A command-line tool to retrieve and display GitHub user activity, "
+            "including push events, pull requests, issues, and more. "
+            "This tool is based on the Roadmap.sh Backend Project: https://roadmap.sh/projects/github-user-activity"
+        ),
+        add_help=False,
+    )
+
+    parser.add_argument("username", nargs="?", help="Github Username")
+    parser.add_argument(
+        "event",
+        nargs="?",
+        help="Event Type: push, pull, watch, issues, or leave empty for all activities",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version="%(prog)s 0.1",
+        help="Print version",
+    )
+    parser.add_argument("-h", "--help", action="help", help="Print help")
+
+    args = parser.parse_args()
+
+    if len(argv) == 1:
+        parser.print_help()
+        sys.exit(0)
+
+    if not args.username:
+        print("Error: Username is required.")
+        parser.print_help()
+        sys.exit(1)
+
+    get_response = user_activity(args.username)
     if isinstance(get_response, dict):
-        print("Username not found")
+        print("Error: Username not found")
         sys.exit(1)
     elif not get_response:
-        print(f"{sys.argv[1]} has no activity yet for this period")
+        print(f"{args.username} has no activity yet for this period")
         sys.exit(1)
+    handle_response(parser, get_response, args.event)
 
-    handle_response(get_response)
-else:
-    print(f"Usage: python {app_name}.py <username>")
-    sys.exit(1)
+
+if __name__ == "__main__":
+    main(sys.argv)
