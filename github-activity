@@ -5,25 +5,108 @@ import http.client
 import json
 import socket
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 
-def check_internet_connection(host="8.8.8.8", port=53, timeout=8):
+def check_internet_connection(host="8.8.8.8", port=53):
     try:
-        socket.setdefaulttimeout(timeout)
+        socket.setdefaulttimeout(5)
         socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
         return True
     except (socket.timeout, socket.error):
         return False
 
 
+def get_rate_limit(username: str):
+    try:
+        host = "api.github.com"
+        conn = http.client.HTTPSConnection(host)
+
+        conn.request(
+            "GET",
+            "/rate_limit",
+            headers={"Host": host, "User-Agent": f"{username}"},
+        )
+
+        response = conn.getresponse()
+
+        if response.status != 200:
+            print(f"Error: Received {response.status} from GitHub API.")
+            sys.exit(1)
+
+        data = response.read()
+        parsed_data = json.loads(data.decode("utf-8"))
+
+        return parsed_data
+
+    except http.client.HTTPException:
+        print(
+            "Error: Unable to connect to GitHub. Please check your network connection."
+        )
+        sys.exit(1)
+    except json.JSONDecodeError:
+        print("Error: Unable to parse GitHub response. Please try again.")
+        sys.exit(1)
+
+
+def handle_api_limit(resources: dict) -> int:
+    remaining_limit = -1
+    try:
+        rate_date = resources.get("rate", {})
+        if rate_date:
+            remaining = rate_date.get("remaining")
+            remaining_limit = int(remaining)
+
+    except KeyError:
+        print("Error: Invalid API response structure")
+        sys.exit(1)
+    except ValueError:
+        print("Error: Failed to process API response")
+        sys.exit(1)
+
+    return remaining_limit
+
+
+def api_limit_message(resources: dict):
+    try:
+        rate_data = resources.get("rate", {})
+        if rate_data:
+            used = rate_data.get("used")
+            remaining = rate_data.get("remaining")
+            limit = rate_data.get("limit")
+            reset_timestamp = rate_data.get("reset")
+
+            reset_time = datetime.fromtimestamp(
+                reset_timestamp, tz=timezone.utc
+            ).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+            print(f"""Overall API Rate Limit:
+  Used: {used}
+  Usage: {remaining}/{limit}
+  Reset: {reset_time}""")
+        else:
+            print("Error: API Rate limit data not found")
+
+    except KeyError:
+        print("Error: Invalid API response structure")
+        sys.exit(1)
+    except ValueError:
+        print("Error: Failed to process API response")
+        sys.exit(1)
+
+
 def user_activity(username: str):
     if not check_internet_connection():
         print(
-            "Error: Unable to connect to GitHub. Please check your network connection"
+            "Error: Unable to connect to GitHub. Please check your network connection."
         )
         sys.exit(1)
+
+    if handle_api_limit(get_rate_limit(username)) < 1:
+        print("Error: API rate limit exceeded. Please try again later.")
+        sys.exit(1)
+
     try:
         host = "api.github.com"
         conn = http.client.HTTPSConnection(host)
@@ -36,22 +119,34 @@ def user_activity(username: str):
 
         response = conn.getresponse()
 
+        if response.status != 200:
+            print(f"Error: Received {response.status} from GitHub API.")
+            sys.exit(1)
+
         data = response.read()
         parsed_data = json.loads(data.decode("utf-8"))
 
+        if not parsed_data:
+            print(f"{username} has no recent activity.")
+            sys.exit(0)
+
         return parsed_data
 
-    except socket.gaierror as e:
-        print(f"Error: Could not resolve the hostname. Details: {e}")
-        sys.exit(1)
-
-    except http.client.HTTPException as e:
+    except socket.gaierror:
         print(
-            f"Error: Unable to connect to GitHub. Please check your network connection. Details: {e}"
+            "Error: Could not resolve the hostname. Please check your network connection."
         )
         sys.exit(1)
 
-    return None
+    except json.JSONDecodeError:
+        print("Error: Unable to parse GitHub response. Please try again.")
+        sys.exit(1)
+
+    except http.client.HTTPException:
+        print(
+            "Error: Unable to connect to GitHub. Please check your network connection."
+        )
+        sys.exit(1)
 
 
 def event_message(event: str, commit_count: int, repo_name: str) -> str:
@@ -138,6 +233,7 @@ def handle_response(
                         print(f"{event_msg}")
                         print(f"  Latest activity: {latest_date}")
                         print()
+                # TODO: add event if the event is empty count == 0
 
         if filtered_event == "NoEvent":
             print("Error: invalid event type")
@@ -164,6 +260,12 @@ def main(argv: List[str]):
         help="Event Type: push, pull, watch, issues, or leave empty for all activities",
     )
     parser.add_argument(
+        "-l",
+        "--limit",
+        action="store_true",
+        help="Check remaining API limit for the specified username",
+    )
+    parser.add_argument(
         "-v",
         "--version",
         action="version",
@@ -178,19 +280,26 @@ def main(argv: List[str]):
         parser.print_help()
         sys.exit(0)
 
+    if args.limit:
+        if not args.username:
+            print("Error: Username is required to check the API limit")
+            parser.print_help()
+            sys.exit(1)
+
+        api_limit_message(get_rate_limit(args.username))
+        sys.exit(0)
+
     if not args.username:
-        print("Error: Username is required.")
+        print("Error: Username is required")
         parser.print_help()
         sys.exit(1)
 
-    get_response = user_activity(args.username)
-    if isinstance(get_response, dict):
+    responses = user_activity(args.username)
+    if isinstance(responses, dict):
         print("Error: Username not found")
         sys.exit(1)
-    elif not get_response:
-        print(f"{args.username} has no activity yet for this period")
-        sys.exit(1)
-    handle_response(parser, get_response, args.event)
+
+    handle_response(parser, responses, args.event)
 
 
 if __name__ == "__main__":
