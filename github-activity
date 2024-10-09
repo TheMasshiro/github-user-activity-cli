@@ -233,7 +233,7 @@ def handle_response(
                         print(f"{event_msg}")
                         print(f"  Latest activity: {latest_date}")
                         print()
-                # TODO: add event if the event is empty count == 0
+                # TODO: check event if the specific event is empty or that specific event is count == 0
 
         if filtered_event == "NoEvent":
             print("Error: invalid event type")
