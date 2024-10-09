@@ -4,7 +4,7 @@ import socket
 import sys
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Optional
 
 
 class AbstractAPI(ABC):
@@ -12,7 +12,7 @@ class AbstractAPI(ABC):
     def check_internet(self):
         pass
 
-    def handle_error(self, message: str) -> Any:
+    def handle_error(self, message: str):
         pass
 
     def get_content(self, endpoint: str, username: Optional[str] = None):
@@ -28,7 +28,7 @@ class APIEndpoint(AbstractAPI):
         except (socket.timeout, socket.error):
             return False
 
-    def handle_error(self, message: str) -> Any:
+    def handle_error(self, message: str):
         print(message)
         sys.exit(1)
 
@@ -131,7 +131,7 @@ class RateLimit:
             print(f"  Used:        {used}")
             print(f"  Usage:       {remaining}/{limit}")
             print(f"  Reset at:    {reset_time}")
-            if remaining >= 1 and remaining <= 5:
+            if 1 <= remaining <= 5:
                 print(f"Warning: You only have {remaining} requests left\n")
 
         except KeyError:
