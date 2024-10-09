@@ -34,10 +34,11 @@ def main(argv: List[str]):
         add_help=False,
     )
     parser.add_argument("username", nargs="?", help="Github Username")
+    # TODO: Create (Repo, Branch and Tag)
     parser.add_argument(
         "event",
         nargs="?",
-        help="Event Type: push, pull, star, issues, or leave empty for all activities",
+        help="Event Type: push, pull, star, issues, fork, create, or leave empty for all activities",
     )
     parser.add_argument(
         "-l",
