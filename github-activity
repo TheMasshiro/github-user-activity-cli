@@ -27,10 +27,6 @@ def main(argv: List[str]):
             "including push events, pull requests, issues, and more. "
             "This tool is based on the Roadmap.sh Backend Project: https://roadmap.sh/projects/github-user-activity"
         ),
-        epilog=(
-            "Note: There may be a short delay in reflecting recent activities in the GitHub API. "
-            "If updates aren't visible immediately, please wait a moment and try again."
-        ),
         add_help=False,
     )
     parser.add_argument("username", nargs="?", help="Github Username")
@@ -41,8 +37,8 @@ def main(argv: List[str]):
         help="Event Type: push, pull, star, issues, fork, create, or leave empty for all activities",
     )
     parser.add_argument(
-        "-l",
-        "--limit",
+        "-u",
+        "--usage",
         action="store_true",
         help="Check remaining requests",
     )
@@ -61,7 +57,7 @@ def main(argv: List[str]):
         print_error(parser)
 
     rate = RateLimit(api_endpoint)
-    if args.limit:
+    if args.usage:
         if args.username:
             print_error(parser)
 
@@ -89,7 +85,7 @@ def main(argv: List[str]):
         )
     elif remaining < 1:
         print(
-            "You have no requests remaining. Run --limit or -l to check the time until your request limit resets\n"
+            "You have no requests remaining. Run --usage or -u to check the time until your request limit resets\n"
         )
 
 
