@@ -62,3 +62,9 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 - This project idea is inspired by [roadmap.sh](https://roadmap.sh/projects/github-user-activity)
 - Uses the GitHub API to fetch user activity data
+
+## TODO
+
+- Pagination for when the output is long
+- Better sorting and handling of the github api response
+- PRACTICE MORE
