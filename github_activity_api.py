@@ -1,26 +1,28 @@
+import argparse
 import http.client
 import json
+import os
 import socket
 import sys
+import termios
+import tty
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 
 class AbstractAPI(ABC):
     @abstractmethod
-    def check_internet(self):
+    def check_internet(self, host: str, port: int) -> bool:
         pass
 
-    def handle_error(self, message: str):
-        pass
-
-    def get_content(self, endpoint: str, username: Optional[str] = None):
+    @abstractmethod
+    def get_content(self, endpoint: str, username: str | None = None):
         pass
 
 
 class APIEndpoint(AbstractAPI):
-    def check_internet(self, host="8.8.8.8", port=53) -> bool:
+    def check_internet(self, host: str = "8.8.8.8", port: int = 53) -> bool:
         try:
             socket.setdefaulttimeout(5)
             socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
@@ -28,19 +30,16 @@ class APIEndpoint(AbstractAPI):
         except (socket.timeout, socket.error):
             return False
 
-    def handle_error(self, message: str):
-        print(message)
-        sys.exit(1)
-
     def get_content(
         self,
         endpoint: str,
-        username: Optional[str] = None,
+        username: str | None = None,
     ):
         if not self.check_internet():
-            self.handle_error(
+            print(
                 "Error: Unable to connect to GitHub\nPlease check your network connection\n"
             )
+            sys.exit(1)
 
         try:
             host = "api.github.com"
@@ -65,21 +64,21 @@ class APIEndpoint(AbstractAPI):
             return parsed_data
 
         except json.JSONDecodeError:
-            self.handle_error(
-                "Error: Unable to parse GitHub response\nPlease try again\n"
-            )
+            print("Error: Unable to parse GitHub response\nPlease try again\n")
+            sys.exit(1)
 
         except http.client.HTTPException:
-            self.handle_error(
+            print(
                 "Error: Unable to connect to GitHub\nPlease check your network connection\n"
             )
+            sys.exit(1)
 
 
 class RateLimit:
     def __init__(self, api_endpoint: APIEndpoint):
         self.api_endpoint = api_endpoint
 
-    def __response(self, endpoint="/rate_limit"):
+    def __response(self, endpoint: str = "/rate_limit"):
         return self.api_endpoint.get_content(endpoint)
 
     def __get_time(self, github_timestamp: int):
@@ -95,33 +94,43 @@ class RateLimit:
         try:
             rate = self.__response()
             if not rate:
-                self.api_endpoint.handle_error(
-                    "Error: API request limit data not found"
-                )
+                print("Error: API request limit data not found")
+                sys.exit(1)
 
-            rate_info = rate.get("rate", {})
+            rate_info = rate.get("rate", dict)
+
             remaining = rate_info.get("remaining")
             remaining_limit = int(remaining)
 
         except KeyError:
-            self.api_endpoint.handle_error("Error: Invalid API response structure\n")
+            print("Error: Invalid API response structure\n")
+            sys.exit(1)
         except ValueError:
-            self.api_endpoint.handle_error("Error: Failed to process API response\n")
+            print("Error: Failed to process API response\n")
+            sys.exit(1)
 
         return remaining_limit
 
     def api_limit_message(self):
         try:
             rate = self.__response()
-            rate_info = rate.get("rate", {})
+            if not rate:
+                print("Error: API request limit data not found")
+                sys.exit(1)
+
+            rate_info = rate.get("rate", dict)
             if not rate_info:
-                self.api_endpoint.handle_error(
-                    "Error: API request limit data not found\n"
-                )
+                print("Error: API request limit data not found\n")
+                sys.exit(1)
+
             used = rate_info.get("used")
             remaining = rate_info.get("remaining")
             limit = rate_info.get("limit")
             reset_timestamp = rate_info.get("reset")
+
+            reset_time = ""
+            if reset_timestamp is not None:
+                reset_time = "Unknown reset time"
 
             reset_time = self.__get_time(reset_timestamp).strftime(
                 "%I:%M:%S %p | %B %d, %Y"
@@ -135,26 +144,29 @@ class RateLimit:
                 print(f"Warning: You only have {remaining} requests left\n")
 
         except KeyError:
-            self.api_endpoint.handle_error("Error: Invalid API response structure\n")
+            print("Error: Invalid API response structure\n")
+            sys.exit(1)
         except ValueError:
-            self.api_endpoint.handle_error("Error: Failed to process API response\n")
+            print("Error: Failed to process API response\n")
+            sys.exit(1)
 
 
 class UserActivity:
-    def __init__(self, username, api_endpoint: APIEndpoint, rate: RateLimit):
+    def __init__(self, username: str, api_endpoint: APIEndpoint, rate: RateLimit):
         self.username = username
         self.api_endpoint = api_endpoint
         self.rate = rate
 
-    def __response(self, endpoint=None):
+    def __response(self, endpoint: str | None = None):
         endpoint = f"/users/{self.username}/events"
         if self.rate.handle_api_limit() < 1:
-            self.api_endpoint.handle_error(
+            print(
                 "Error: API request limit exceeded. Please wait and try again later\nRun --usage or -u to check the time remaining until your request limit resets\n"
             )
+            sys.exit(1)
         return self.api_endpoint.get_content(endpoint, self.username)
 
-    def handle_event(self, event_type: Optional[str] = None):
+    def handle_event(self, event_type: str | None = None):
         if event_type is None:
             return "NoEvent"
 
@@ -184,7 +196,7 @@ class UserActivity:
         event_type: str,
         commit_size: int,
         repo_name: str,
-        ref: Optional[dict] = None,
+        ref: dict[str, dict[str, str]] | None = None,
     ):
         github_messages = {
             "PushEvent": f"- Pushed {commit_size} commit{'' if commit_size == 1 else 's'} to {repo_name}",
@@ -221,15 +233,76 @@ class UserActivity:
 
         return ""
 
-    def handle_response(self, parser, user_event: Optional[str] = None):
+    def paginate_response(self, user_response: list, items_per_page: int = 20):
+        if not user_response:
+            sys.exit(1)
+
+        total_items = len(user_response)
+        total_pages = (total_items + items_per_page - 1) // items_per_page
+        current_page = 1
+
+        def getchar():
+            fd = sys.stdin.fileno()
+            attr = termios.tcgetattr(fd)
+            try:
+                tty.setraw(fd)
+                return sys.stdin.read(1)
+            finally:
+                termios.tcsetattr(fd, termios.TCSANOW, attr)
+
+        while True:
+            os.system("clear")
+            start = (current_page - 1) * items_per_page
+            end = start + items_per_page
+            page_items = user_response[start:end]
+
+            print(f"\nPage {current_page} of {total_pages}")
+            print("----------------------------------")
+            if current_page == 1:
+                print()
+
+            for item in page_items:
+                print(item)
+            print(
+                f"\nShowing items {start + 1}-{min(end, total_items)} of {total_items}"
+            )
+            print("----------------------------------")
+
+            if current_page == 1 and current_page == total_pages:
+                print("Only one page. Exiting...")
+                sys.exit(1)
+            elif current_page == 1:
+                print("Enter 'n' for next page or 'q' to quit.")
+            elif current_page == total_pages:
+                print("Enter 'p' for previous page or 'q' to quit.")
+            else:
+                print("Enter 'n' for next, 'p' for previous, or 'q' to quit.")
+
+            choice = getchar().lower()
+            if choice == "q":
+                print("Exiting...")
+                break
+            elif choice == "n" and current_page < total_pages:
+                current_page += 1
+            elif choice == "p" and current_page > 1:
+                current_page -= 1
+
+    def handle_response(
+        self, parser: argparse.ArgumentParser, user_event: str | None = None
+    ):
         grouped_events = {}
         event_ref: dict[Any, Any] = {}
 
         responses = self.__response()
+        if not responses:
+            print("Error: No data received\n")
+            sys.exit(1)
+
         if isinstance(responses, dict) and (
             responses.get("status") == "404" or responses.get("message") == "Not Found"
         ):
-            self.api_endpoint.handle_error("Error: Account not found\n")
+            print("Error: Account not found\n")
+            sys.exit(1)
 
         for response in responses:
             event_type = response.get("type")
@@ -292,7 +365,7 @@ class UserActivity:
             print(f"Error: '{user_event}' is an invalid event type")
             if parser:
                 parser.print_help()
-            sys.exit(0)
+            sys.exit(1)
 
         output_messages = []
         for date, messages in format_messages.items():
