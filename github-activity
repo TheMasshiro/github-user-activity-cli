@@ -2,21 +2,11 @@
 
 import argparse
 import sys
-from typing import List
 
 from github_activity_api import APIEndpoint, RateLimit, UserActivity
 
 
-def print_error(parser, message: str | None = None):
-    if not message:
-        parser.print_help()
-        sys.exit(1)
-
-    print(message)
-    sys.exit(1)
-
-
-def main(argv: List[str]):
+def main(argv: list[str]):
     api_endpoint = APIEndpoint()
 
     parser = argparse.ArgumentParser(
@@ -30,7 +20,6 @@ def main(argv: List[str]):
         add_help=False,
     )
     parser.add_argument("username", nargs="?", help="Github Username")
-    # TODO: Create (Repo, Branch and Tag)
     parser.add_argument(
         "event",
         nargs="?",
@@ -46,7 +35,7 @@ def main(argv: List[str]):
         "-v",
         "--version",
         action="version",
-        version="%(prog)s 0.1",
+        version="%(prog)s 0.1.1",
         help="Print version",
     )
     parser.add_argument("-h", "--help", action="help", help="Print help")
@@ -54,29 +43,30 @@ def main(argv: List[str]):
     args = parser.parse_args()
 
     if len(argv) == 1:
-        print_error(parser)
+        parser.print_help()
+        sys.exit(1)
 
     rate = RateLimit(api_endpoint)
     if args.usage:
         if args.username:
-            print_error(parser)
+            parser.print_help()
+            sys.exit(1)
 
         rate.api_limit_message()
         sys.exit(0)
 
     if not args.username:
-        print_error(parser)
+        parser.print_help()
+        sys.exit(1)
 
     user = UserActivity(args.username, api_endpoint, rate)
     response = user.handle_response(parser, args.event)
     if not response:
-        print_error(
-            parser,
+        print(
             f"No activity found for the event {args.event if args.event else 'All'}\n",
         )
-
-    for message in response:
-        print(message)
+        sys.exit(1)
+    user.paginate_response(response)
 
     remaining = rate.handle_api_limit()
     if 1 <= remaining <= 5:
