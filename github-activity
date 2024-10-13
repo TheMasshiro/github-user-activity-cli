@@ -66,7 +66,7 @@ def main(argv: list[str]):
             f"No activity found for the event {args.event if args.event else 'All'}\n",
         )
         sys.exit(1)
-    user.paginate_response(response)
+    user.paginate_response(response, event=args.event)
 
     remaining = rate.handle_api_limit()
     if 1 <= remaining <= 5:
