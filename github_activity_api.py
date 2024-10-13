@@ -233,7 +233,9 @@ class UserActivity:
 
         return ""
 
-    def paginate_response(self, user_response: list, items_per_page: int = 20):
+    def paginate_response(
+        self, user_response: list, items_per_page: int = 20, event: str | None = None
+    ):
         if not user_response:
             sys.exit(1)
 
@@ -250,13 +252,19 @@ class UserActivity:
             finally:
                 termios.tcsetattr(fd, termios.TCSANOW, attr)
 
+        user_event = "all"
+        if event is not None:
+            user_event = event
+
         while True:
             os.system("clear")
             start = (current_page - 1) * items_per_page
             end = start + items_per_page
             page_items = user_response[start:end]
 
-            print(f"\nPage {current_page} of {total_pages}")
+            print(
+                f"\nPage {current_page} of {total_pages}: {user_event.title()} Activities"
+            )
             print("----------------------------------")
             if current_page == 1:
                 print()
