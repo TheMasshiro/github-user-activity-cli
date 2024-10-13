@@ -65,6 +65,5 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ## TODO
 
-- Pagination for when the output is long
 - Better sorting and handling of the github api response
 - PRACTICE MORE
