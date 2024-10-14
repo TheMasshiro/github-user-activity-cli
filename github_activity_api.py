@@ -260,17 +260,20 @@ class UserActivity:
             os.system("clear")
             start = (current_page - 1) * items_per_page
             end = start + items_per_page
-            page_items = user_response[start:end]
 
             print(
                 f"\nPage {current_page} of {total_pages}: {user_event.title()} Activities"
             )
             print("----------------------------------")
-            if current_page == 1:
-                print()
 
-            for item in page_items:
-                print(item)
+            for i, item in enumerate(user_response[start:end]):
+                if not item.startswith("-"):
+                    if i > 0:
+                        print()
+                    print(item)
+                else:
+                    print(item)
+
             print(
                 f"\nShowing items {start + 1}-{min(end, total_items)} of {total_items}"
             )
@@ -379,6 +382,5 @@ class UserActivity:
         for date, messages in format_messages.items():
             output_messages.append(date)
             output_messages.extend(messages)
-            output_messages.append("")
 
         return output_messages
