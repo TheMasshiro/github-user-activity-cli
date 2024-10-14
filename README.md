@@ -1,4 +1,4 @@
-# GitHub Activity CLI
+# GitHub User Activity CLI
 
 ## Overview
 
@@ -10,16 +10,54 @@ This project is a command-line interface (CLI) tool that fetches and displays re
 - Display activity in a user-friendly format in the terminal
 - Summarize different types of events (Push, Pull Request, Watch, Issues)
 
+## Screenshots
+
+<details>
+  <summary>Click to see all activities</summary>
+  
+  ![All Activities](all_activities.png)
+</details>
+
+<details>
+  <summary>Click to see push activities</summary>
+  
+  ![Push Activities](push_activies.png)
+</details>
+
+<details>
+  <summary>Click to see pull request activities</summary>
+  
+  ![Pull Request Activities](pull_activities.png)
+</details>
+
+<details>
+  <summary>Click to see issue activities</summary>
+  
+  ![Issue Activities](/docs/issues_activities.png)
+</details>
+
+<details>
+  <summary>Click to see fork activities</summary>
+  
+  ![Fork Activities](fork_activities.png)
+</details>
+
+<details>
+  <summary>Click to see create activities</summary>
+  
+  ![Create Activities](create_activities.png)
+</details>
+
 ## Installation
 
 1. Ensure you have Python 3 installed on your system.
 2. Clone this repository:
    ```
-   git clone https://github.com/TheMasshiro/github-activity-cli.git
+   git clone https://github.com/TheMasshiro/github-user-activity-cli.git
    ```
 3. Navigate to the project directory:
    ```
-   cd github-activity-cli
+   cd github-user-activity-cli
    ```
 
 ## Usage
@@ -37,18 +75,6 @@ For example:
 ```
 
 The script will display the recent activities of the specified user.
-
-## Technologies Used
-
-- Python 3
-- Standard Library modules:
-  - `argparse` for parsing command-line arguments
-  - `http.client` for making HTTP requests
-  - `json` for parsing JSON responses
-  - `socket` for network communication and checking internet connection
-  - `sys` for interacting with the Python interpreter and handling command-line arguments
-  - `datetime` for working with dates and times (e.g., timestamps)
-  - `typing.List` for type hinting, specifically when working with lists
 
 ## Contributing
 
