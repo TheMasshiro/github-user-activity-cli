@@ -76,6 +76,18 @@ For example:
 
 The script will display the recent activities of the specified user.
 
+```
+./github-activity octocat pull
+```
+
+The pull event will display the recent pull activities of the specified user.
+
+For more information, use help:
+
+```
+./github-activity -h
+```
+
 ## Contributing
 
 This is a learning project, but contributions and suggestions are welcome. Please feel free to fork the repository and submit pull requests.
