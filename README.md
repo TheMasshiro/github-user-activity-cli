@@ -15,19 +15,19 @@ This project is a command-line interface (CLI) tool that fetches and displays re
 <details>
   <summary>Click to see all activities</summary>
   
-  ![All Activities](all_activities.png)
+  ![All Activities](/docs/all_activities.png)
 </details>
 
 <details>
   <summary>Click to see push activities</summary>
   
-  ![Push Activities](push_activies.png)
+  ![Push Activities](/docs/push_activies.png)
 </details>
 
 <details>
   <summary>Click to see pull request activities</summary>
   
-  ![Pull Request Activities](pull_activities.png)
+  ![Pull Request Activities](/docs/pulll_activities.png)
 </details>
 
 <details>
@@ -39,13 +39,13 @@ This project is a command-line interface (CLI) tool that fetches and displays re
 <details>
   <summary>Click to see fork activities</summary>
   
-  ![Fork Activities](fork_activities.png)
+  ![Fork Activities](/docs/fork_activities.png)
 </details>
 
 <details>
   <summary>Click to see create activities</summary>
   
-  ![Create Activities](create_activities.png)
+  ![Create Activities](/docs/create_activities.png)
 </details>
 
 ## Installation
