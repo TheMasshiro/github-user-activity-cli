@@ -21,13 +21,13 @@ This project is a command-line interface (CLI) tool that fetches and displays re
 <details>
   <summary>Click to see push activities</summary>
   
-  ![Push Activities](/docs/push_activies.png)
+  ![Push Activities](/docs/push_activities.png)
 </details>
 
 <details>
   <summary>Click to see pull request activities</summary>
   
-  ![Pull Request Activities](/docs/pulll_activities.png)
+  ![Pull Request Activities](/docs/pull_activities.png)
 </details>
 
 <details>
