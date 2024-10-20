@@ -304,7 +304,7 @@ class UserActivity:
 
             if choice == "q":
                 print("Exiting...")
-                break
+                sys.exit(0)
             elif choice == "n" and current_page < total_pages:
                 current_page += 1
             elif choice == "p" and current_page > 1:
