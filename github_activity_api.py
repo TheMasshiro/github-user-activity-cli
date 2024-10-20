@@ -61,6 +61,7 @@ class APIEndpoint(AbstractAPI):
             data = response.read()
             parsed_data = json.loads(data.decode("utf-8"))
 
+            # TODO: Change this to dictionary
             return parsed_data
 
         except json.JSONDecodeError:
@@ -257,7 +258,11 @@ class UserActivity:
             user_event = event
 
         while True:
-            os.system("clear")
+            if os.name == "nt":
+                os.system("cls")
+            elif os.name == "posix":
+                os.system("clear")
+
             start = (current_page - 1) * items_per_page
             end = start + items_per_page
 
@@ -289,7 +294,13 @@ class UserActivity:
             else:
                 print("Enter 'n' for next, 'p' for previous, or 'q' to quit.")
 
-            choice = getchar().lower()
+            if os.name == "nt":
+                import msvcrt
+
+                choice = msvcrt.getchar().lower()
+            elif os.name == "posix":
+                choice = getchar().lower()
+
             if choice == "q":
                 print("Exiting...")
                 break
