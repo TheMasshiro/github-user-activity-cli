@@ -286,7 +286,7 @@ class UserActivity:
             if os.name == "nt":
                 import msvcrt
 
-                choice = msvcrt.getchar().lower()
+                choice = msvcrt.getch().lower()
             elif os.name == "posix":
                 import termios
                 import tty
