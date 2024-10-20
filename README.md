@@ -65,19 +65,19 @@ This project is a command-line interface (CLI) tool that fetches and displays re
 Run the script from the command line, providing a GitHub username as an argument:
 
 ```
-./github-activity <username>
+python github-activity.py <username>
 ```
 
 For example:
 
 ```
-./github-activity octocat
+python github-activity.py octocat
 ```
 
 The script will display the recent activities of the specified user.
 
 ```
-./github-activity octocat pull
+python github-activity.py octocat pull
 ```
 
 The pull event will display the recent pull activities of the specified user.
@@ -85,7 +85,7 @@ The pull event will display the recent pull activities of the specified user.
 For more information, use help:
 
 ```
-./github-activity -h
+python github-activity.py -h
 ```
 
 ## Contributing
