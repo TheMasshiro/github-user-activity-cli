@@ -4,8 +4,6 @@ import json
 import os
 import socket
 import sys
-import termios
-import tty
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any
@@ -244,15 +242,6 @@ class UserActivity:
         total_pages = (total_items + items_per_page - 1) // items_per_page
         current_page = 1
 
-        def getchar():
-            fd = sys.stdin.fileno()
-            attr = termios.tcgetattr(fd)
-            try:
-                tty.setraw(fd)
-                return sys.stdin.read(1)
-            finally:
-                termios.tcsetattr(fd, termios.TCSANOW, attr)
-
         user_event = "all"
         if event is not None:
             user_event = event
@@ -299,6 +288,18 @@ class UserActivity:
 
                 choice = msvcrt.getchar().lower()
             elif os.name == "posix":
+                import termios
+                import tty
+
+                def getchar():
+                    fd = sys.stdin.fileno()
+                    attr = termios.tcgetattr(fd)
+                    try:
+                        tty.setraw(fd)
+                        return sys.stdin.read(1)
+                    finally:
+                        termios.tcsetattr(fd, termios.TCSANOW, attr)
+
                 choice = getchar().lower()
 
             if choice == "q":
