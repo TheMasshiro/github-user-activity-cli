@@ -356,6 +356,7 @@ class UserActivity:
                     "DeleteEvent": 0,
                     "IssueCommentEvent": 0,
                     "CreateEvent": 0,
+                    "PublicEvent": 0,
                 }
 
             grouped_events[key][event_type] += payload_size
